@@ -1,0 +1,67 @@
+bot:
+  mode: "dry_run"  # "dry_run" or "live"
+  tick_interval_seconds: 60
+  log_level: "INFO"
+
+clob:
+  host: "https://clob.polymarket.com"
+  chain_id: 137
+
+gamma:
+  host: "https://gamma-api.polymarket.com"
+  cache_ttl_seconds: 300
+
+risk:
+  initial_bankroll_usd: 50.0
+  max_position_pct: 0.10
+  max_total_exposure_pct: 0.60
+  daily_loss_limit_pct: 0.05
+  max_single_trade_pct: 0.05
+  min_order_size_usd: 1.0
+
+strategies:
+  copy_trading:
+    enabled: true
+    allocation_pct: 0.30
+    wallets: []  # Add whale wallet addresses here
+    max_delay_seconds: 300
+    max_per_market_pct: 0.15
+    use_market_orders: true
+    min_whale_trade_usd: 500
+
+  resolution_hunting:
+    enabled: true
+    allocation_pct: 0.20
+    min_probability: 0.93
+    min_edge_pct: 0.03
+    max_per_market_usd: 20.0
+    scan_interval_seconds: 300
+    min_liquidity_usd: 100
+    exclude_categories:
+      - "crypto"
+
+  sentiment:
+    enabled: false
+    allocation_pct: 0.25
+    min_edge_pct: 0.10
+    min_confidence: 0.7
+    newsapi_poll_interval: 600
+    categories:
+      - "politics"
+      - "world"
+    claude_model: "claude-sonnet-4-20250514"
+    max_per_market_usd: 15.0
+
+  arbitrage:
+    enabled: false
+    allocation_pct: 0.25
+    min_spread_after_fees_pct: 0.03
+    max_per_pair_usd: 25.0
+    scan_interval_seconds: 600
+
+notifications:
+  telegram_enabled: true
+  notify_on_trade: true
+  notify_on_error: true
+  daily_summary: true
+  daily_summary_hour: 20
