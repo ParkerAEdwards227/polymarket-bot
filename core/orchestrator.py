@@ -12,7 +12,7 @@ from services.market_data import MarketDataService
 from services.order_executor import OrderExecutor
 from services.risk_manager import RiskManager
 from services.wallet import WalletManager
-from services.notifier import Notifier
+from services.telegram_bot import TelegramCommandCenter
 from strategies.base import BaseStrategy
 
 logger = logging.getLogger("polybot.orchestrator")
@@ -28,9 +28,11 @@ class Orchestrator:
         self.market_data = MarketDataService(self.gamma, self.clob)
         self.risk = RiskManager(config.risk)
         self.executor = OrderExecutor(self.clob, config)
-        self.notifier = Notifier(config)
+        self.telegram = TelegramCommandCenter(config)
+        self.telegram.set_orchestrator(self)
         self.strategies: list[BaseStrategy] = []
         self._running = False
+        self.paused = False
 
     def register_strategy(self, strategy: BaseStrategy):
         self.strategies.append(strategy)
@@ -51,7 +53,7 @@ class Orchestrator:
         except Exception as e:
             logger.warning("Wallet connection skipped: %s", e)
 
-        await self.notifier.connect()
+        await self.telegram.start()
 
         # Start strategies
         for strat in self.strategies:
@@ -65,7 +67,7 @@ class Orchestrator:
             len(self.strategies),
             balance,
         )
-        await self.notifier.notify_startup(self.config.mode, balance)
+        await self.telegram.notify_startup(self.config.mode, balance)
 
         # Handle shutdown signals
         loop = asyncio.get_event_loop()
@@ -81,12 +83,15 @@ class Orchestrator:
                 await self._tick()
             except Exception as e:
                 logger.error("Tick failed: %s", e, exc_info=True)
-                await self.notifier.notify_error(str(e))
+                await self.telegram.notify_error(str(e))
 
             await asyncio.sleep(self.config.tick_interval_seconds)
 
     async def _tick(self):
         """One scan cycle: refresh data, collect signals, evaluate risk, execute."""
+        if self.paused:
+            return
+
         # Refresh market data
         await self.market_data.refresh_markets()
 
@@ -133,7 +138,7 @@ class Orchestrator:
             await self.db.record_trade(trade)
             if trade.status in ("filled", "dry_run"):
                 await self._update_portfolio_from_trade(trade, portfolio)
-                await self.notifier.notify_trade(trade)
+                await self.telegram.notify_trade(trade)
 
                 # Notify strategy
                 strategy = next(
@@ -201,7 +206,8 @@ class Orchestrator:
         for strat in self.strategies:
             await strat.on_shutdown()
 
-        await self.notifier.notify_shutdown()
+        await self.telegram.notify_shutdown()
+        await self.telegram.stop()
         await self.gamma.close()
         await self.db.close()
         logger.info("Shutdown complete")
