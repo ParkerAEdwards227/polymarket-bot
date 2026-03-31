@@ -1,6 +1,6 @@
 bot:
   mode: "dry_run"  # "dry_run" or "live"
-  tick_interval_seconds: 60
+  tick_interval_seconds: 30  # 30s for crypto scalping (other strategies self-throttle)
   log_level: "INFO"
 
 clob:
@@ -9,7 +9,7 @@ clob:
 
 gamma:
   host: "https://gamma-api.polymarket.com"
-  cache_ttl_seconds: 300
+  cache_ttl_seconds: 60  # Reduced from 300 for short-term crypto markets
 
 risk:
   initial_bankroll_usd: 50.0
@@ -18,6 +18,7 @@ risk:
   daily_loss_limit_pct: 0.05
   max_single_trade_pct: 0.05
   min_order_size_usd: 1.0
+  use_kelly: true
 
 strategies:
   copy_trading:
@@ -58,6 +59,21 @@ strategies:
     min_spread_after_fees_pct: 0.03
     max_per_pair_usd: 25.0
     scan_interval_seconds: 600
+
+  crypto_scalper:
+    enabled: false  # Enable when ANTHROPIC_API_KEY is set
+    allocation_pct: 0.25
+    target_assets:
+      - "BTC"
+      - "ETH"
+      - "SOL"
+    min_edge_pct: 0.05
+    min_confidence: 0.60
+    scan_interval_seconds: 30
+    max_position_usd: 15.0
+    kelly_fraction: 0.25
+    claude_model: "claude-sonnet-4-20250514"
+    binance_base_url: "https://api.binance.com"
 
 notifications:
   telegram_enabled: true

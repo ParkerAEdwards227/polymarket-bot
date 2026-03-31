@@ -14,6 +14,7 @@ class RiskConfig:
     daily_loss_limit_pct: float = 0.05
     max_single_trade_pct: float = 0.05
     min_order_size_usd: float = 1.0
+    use_kelly: bool = False
 
 
 @dataclass
@@ -61,6 +62,20 @@ class ArbitrageConfig:
 
 
 @dataclass
+class CryptoScalperConfig:
+    enabled: bool = False
+    allocation_pct: float = 0.25
+    target_assets: list[str] = field(default_factory=lambda: ["BTC", "ETH", "SOL"])
+    min_edge_pct: float = 0.05
+    min_confidence: float = 0.60
+    scan_interval_seconds: int = 30
+    max_position_usd: float = 15.0
+    kelly_fraction: float = 0.25
+    claude_model: str = "claude-sonnet-4-20250514"
+    binance_base_url: str = "https://api.binance.com"
+
+
+@dataclass
 class NotificationsConfig:
     telegram_enabled: bool = True
     notify_on_trade: bool = True
@@ -98,6 +113,7 @@ class BotConfig:
     resolution_hunting: ResolutionHuntingConfig = field(default_factory=ResolutionHuntingConfig)
     sentiment: SentimentConfig = field(default_factory=SentimentConfig)
     arbitrage: ArbitrageConfig = field(default_factory=ArbitrageConfig)
+    crypto_scalper: CryptoScalperConfig = field(default_factory=CryptoScalperConfig)
     notifications: NotificationsConfig = field(default_factory=NotificationsConfig)
 
 
@@ -135,5 +151,6 @@ def load_config(config_path: str = "config.yaml", env_path: str = ".env") -> Bot
         resolution_hunting=ResolutionHuntingConfig(**strats.get("resolution_hunting", {})),
         sentiment=SentimentConfig(**strats.get("sentiment", {})),
         arbitrage=ArbitrageConfig(**strats.get("arbitrage", {})),
+        crypto_scalper=CryptoScalperConfig(**strats.get("crypto_scalper", {})),
         notifications=NotificationsConfig(**notif_raw) if notif_raw else NotificationsConfig(),
     )

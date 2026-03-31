@@ -50,6 +50,16 @@ class RiskManager:
         exposure_room = max_exposure - portfolio.total_exposure
         allowed_size = min(allowed_size, exposure_room)
 
+        # 5b. Kelly criterion sizing (opt-in)
+        if self.config.use_kelly and signal.confidence > 0:
+            kelly_size = self._kelly_size(signal, bankroll)
+            if kelly_size is not None and kelly_size > 0:
+                allowed_size = min(allowed_size, kelly_size)
+                logger.debug(
+                    "Kelly sizing: %.2f for confidence=%.2f, price=%.3f",
+                    kelly_size, signal.confidence, signal.target_price,
+                )
+
         # 6. Minimum order size
         if allowed_size < self.config.min_order_size_usd:
             reason = f"Order too small after limits: {allowed_size:.2f} < {self.config.min_order_size_usd}"
@@ -65,3 +75,19 @@ class RiskManager:
 
         signal.size_usd = allowed_size
         return signal, ""
+
+    def _kelly_size(self, signal: Signal, bankroll: float) -> float | None:
+        """Compute quarter-Kelly position size. Returns dollar amount or None."""
+        if signal.target_price <= 0 or signal.target_price >= 1:
+            return None
+        # Odds: what you win per dollar risked on a binary outcome
+        odds = (1 - signal.target_price) / signal.target_price
+        if odds <= 0:
+            return None
+        # Kelly fraction: f* = (p(1+b) - 1) / b
+        # Using signal.confidence as proxy for estimated win probability
+        kelly_f = (signal.confidence * (1 + odds) - 1) / odds
+        if kelly_f <= 0:
+            return None  # No edge according to Kelly
+        # Quarter-Kelly for safety
+        return kelly_f * 0.25 * bankroll

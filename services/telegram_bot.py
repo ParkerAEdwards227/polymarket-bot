@@ -203,6 +203,7 @@ class TelegramCommandCenter:
             "copy_trading": orch.config.copy_trading.enabled,
             "sentiment": orch.config.sentiment.enabled,
             "arbitrage": orch.config.arbitrage.enabled,
+            "crypto_scalper": orch.config.crypto_scalper.enabled,
         }
 
         lines = ["*Strategies*\n"]

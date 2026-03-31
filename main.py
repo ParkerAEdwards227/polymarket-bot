@@ -30,6 +30,10 @@ def build_strategies(config, market_data, db):
         from strategies.arbitrage.strategy import ArbitrageStrategy
         strategies.append(ArbitrageStrategy(config.arbitrage, market_data))
 
+    if config.crypto_scalper.enabled:
+        from strategies.crypto_scalper.strategy import CryptoScalperStrategy
+        strategies.append(CryptoScalperStrategy(config.crypto_scalper, config, market_data))
+
     return strategies
 
 
